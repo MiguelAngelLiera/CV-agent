@@ -1,0 +1,65 @@
+{
+  "name": "Miguel Angel Liera Montaño",
+  "headline": "AI / ML Engineer — RAG, agentes LLM y visión por computadora en producción.",
+  "location": "Ciudad de México, México",
+  "summary": "AI Engineer con más de 4 años de experiencia en diseño e implementación de soluciones de IA generativa en ambientes productivos reales. Especializado en arquitecturas RAG avanzadas, agentes multi-paso con MCP, pipelines de ingestión y recuperación sobre bases vectoriales,  y evaluación continua de soluciones GenAI con métricas de groundedness, relevancia y alucinación. Dominio avanzado de Python (tipado, async/await, testing, empaquetado) y construcción de servicios productivos con FastAPI. Comprensión profunda de trade-offs de costo, latencia y capacidades por proveedor. Experiencia en entornos financieros y regulatorios de alta exigencia (BBVA/CONSAR), con alineación natural a los requisitos de gobierno, trazabilidad y seguridad del sector bancario mexicano.",
+  "education": [
+    {
+      "degree": "Licenciatura en Ciencias de la Computación",
+      "institution": "UNAM",
+      "status": "Concluido (finalizada en 2023)"
+    }
+  ],
+  "experience": [
+    {
+      "role": "AI/ML Engineer",
+      "company": "Orion Innovation (embebido en el equipo de arquitectura de IA de BBVA)",
+      "period": "(Octubre 2024 – actualmente)",
+      "highlights": [
+        "Diseño e implementación de arquitecturas RAG de nivel productivo end-to-end, incluyendo pipelines de extracción e ingestión, chunking, indexación y recuperación sobre bases vectoriales, con trazabilidad, gobierno de datos y calidad del retrieval garantizados en entorno bancario de alta exigencia.",
+        "Aplicación de principios de seguridad GenAI alineados con OWASP LLM Top 10.",
+        "Diseño e implementación de pipelines de Computer Vision (CNN, YOLO) integrados con APIs empresariales vía REST, asegurando despliegues productivos confiables con CI/CD en Jenkins, contenedores Docker. ",
+        "Implementación de buenas prácticas de código, documentación técnica, testing y patrones de diseño GenAI dentro del equipo, actuando como asesor técnico para equipos de arquitectura, seguridad y DevOps.",
+        "Desarrollo de software de benchmarking de modelos que redujo el tiempo de evaluación en 50%."
+      ]
+    },
+    {
+      "role": "Data Scientist",
+      "company": "CONSAR (regulador federal de pensiones de México)",
+      "period": "(Mayo 2023 - Octubre 2024)",
+      "highlights": [
+        "Desarrollo de soluciones de IA y modelos predictivos de nivel productivo para supervisión financiera de portafolios AFORE a escala nacional, con ownership completo del ciclo de vida: diseño, construcción, pruebas, despliegue y monitoreo continuo bajo regulación federal.",
+        "Construcción servicios productivos con Python avanzado (async, tipado) y FastAPI para la exposición y consumo de modelos analíticos, integrados con bases de datos relacionales y pipelines PySpark en arquitecturas distribuidas.",
+        "Implementación de control de versiones avanzado con Git y prácticas de ingeniería moderna (code review, testing, documentación) en un entorno regulatorio donde la trazabilidad y el gobierno de datos.",
+        "Refactorizar y optimizar procedimientos SQL para procesos financieros automatizados diarios, aplicando técnicas de tunning avanzado y reduciendo el tiempo de ejecución."
+      ]
+    },
+    {
+      "role": "Data Miner Intern",
+      "company": "CONSAR (regulador federal de pensiones de México)",
+      "period": "(Agosto 2022 - Mayo 2023)",
+      "highlights": [
+        "Mantenimiento de herramientas de supervisión financiera, garantizando integridad y confiabilidad de datos para flujos críticos de evaluación de riesgo en entorno regulatorio federal.",
+        "Construir reportes de BI y dashboards para comunicar hallazgos analíticos a equipos de negocio no técnicos."
+      ]
+    }
+  ],
+  "skills": {
+    "core_stack": ["Python", "PySpark", "SQL", "FastAPI", "Docker", "AWS", "CI/CD"],
+    "ai_ml": ["RAG (LangChain, LangGraph, LlamaIndex)", "Integración de LLMs (AWS Bedrock, Gemini)", "Computer Vision (YOLO, R-CNN)"]
+  },
+  "projects": [
+    {
+      "name": "Modelos de Redes Neuronales para Predicción de Precios — BMV",
+      "description": "Implementación de arquitecturas híbridas de Deep Learning (LSTM, GRU, NARNN) para predicción de precios en la Bolsa Mexicana de Valores, con tracking de experimentos en MLflow, versionamiento en Git y gestión de data drift entre entrenamiento y producción. Precisión: 92.1%."
+    },
+    {
+      "name": "Pipeline de Detección de Fraude — Enfoque Multi-Modelo",
+      "description": "Construcción de un pipeline end-to-end para detección de fraude financiero: EDA, feature engineering, entrenamiento y evaluación comparativa de múltiples algoritmos de ML — con documentación de métricas de rendimiento y reproducibilidad."
+    },
+    {
+      "name": "Detección de Uso de Suelo — Computer Vision",
+      "description": "Implementación de un pipeline de segmentación de imágenes satelitales con arquitectura YOLO sobre el dataset SECOND, explorando capacidades y trade-offs de modelos de visión computacional."
+    }
+  ]
+}
