@@ -11,6 +11,7 @@ import os
 import sys
 import types
 from unittest.mock import MagicMock
+import json
 
 os.environ["AGENT_API_KEY"] = "test-key"
 os.environ["GEMINI_API_KEY"] = "fake-gemini-key"
@@ -155,3 +156,27 @@ def test_malformed_input_returns_open_responses_error_shape():
     body = r.json()
     assert "error" in body and "detail" not in body
     assert body["error"]["code"] == "validation_error"
+
+
+def test_streaming_events():
+    """Cada línea 'data:' debe traer su propio campo 'type' — algunos
+    clientes (incluida la plataforma del reto) lo leen del payload, no solo
+    del nombre de evento SSE."""
+    main.client.models.generate_content = MagicMock(return_value=_mock_completion("Hola, esta es una respuesta de prueba."))
+    with client.stream(
+        "POST",
+        "/v1/responses",
+        json={"input": "Cuéntame sobre tu experiencia", "stream": True},
+        headers=HEADERS,
+    ) as r:
+        assert r.status_code == 200
+        raw = "".join(r.iter_text())
+
+    data_lines = [line.removeprefix("data: ") for line in raw.splitlines() if line.startswith("data: ")]
+    assert len(data_lines) >= 3 
+    types_seen = set()
+    for line in data_lines:
+        payload = json.loads(line)
+        assert "type" in payload, f"evento sin 'type': {payload}"
+        types_seen.add(payload["type"])
+    assert types_seen == {"response.created", "response.output_text.delta", "response.completed"}

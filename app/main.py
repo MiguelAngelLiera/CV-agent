@@ -322,12 +322,24 @@ async def create_response(
         return _output_response(response_id, text, "completed", usage)
 
     def event_stream():
-        yield f"event: response.created\ndata: {json.dumps({'id': response_id, 'status': 'in_progress'})}\n\n"
+        item_id = f"msg_{uuid.uuid4().hex[:16]}"
+        in_progress = _output_response(response_id, "", "in_progress", usage)
+        in_progress["output"] = []  
+        yield f"event: response.created\ndata: {json.dumps({'type': 'response.created', 'response': in_progress})}\n\n"
+
         chunk = 60
         for i in range(0, len(text), chunk):
             piece = text[i : i + chunk]
-            yield f"event: response.output_text.delta\ndata: {json.dumps({'id': response_id, 'delta': piece})}\n\n"
+            delta_payload = {
+                "type": "response.output_text.delta",
+                "item_id": item_id,
+                "output_index": 0,
+                "content_index": 0,
+                "delta": piece,
+            }
+            yield f"event: response.output_text.delta\ndata: {json.dumps(delta_payload)}\n\n"
+
         final = _output_response(response_id, text, "completed", usage)
-        yield f"event: response.completed\ndata: {json.dumps(final)}\n\n"
+        yield f"event: response.completed\ndata: {json.dumps({'type': 'response.completed', 'response': final})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
