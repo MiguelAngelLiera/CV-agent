@@ -134,3 +134,24 @@ def test_unexpected_internal_error_returns_500(monkeypatch):
     r = client.post("/v1/responses", json={"input": "hola"}, headers=HEADERS)
     assert r.status_code == 500
     assert r.json()["error"]["code"] == "internal_error"
+
+
+def test_input_as_message_list_with_parts_array(monkeypatch):
+    """Cubre el formato que manda la plataforma: content como lista
+    de partes [{"type":"input_text","text":"..."}] en vez de un string plano."""
+    main.client.models.generate_content = MagicMock(return_value=_mock_completion("Respuesta con contenido estructurado."))
+    r = client.post(
+        "/v1/responses",
+        json={"input": [{"role": "user", "content": [{"type": "input_text", "text": "Hola, cuéntame de ti"}]}]},
+        headers=HEADERS,
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "completed"
+
+
+def test_malformed_input_returns_open_responses_error_shape():
+    r = client.post("/v1/responses", json={"input": [{"role": "not-a-valid-role", "content": "hola"}]}, headers=HEADERS)
+    assert r.status_code == 400
+    body = r.json()
+    assert "error" in body and "detail" not in body
+    assert body["error"]["code"] == "validation_error"

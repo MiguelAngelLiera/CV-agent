@@ -25,10 +25,11 @@ import logging
 import os
 import time
 import uuid
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from google import genai
 from google.genai import errors as genai_errors
@@ -102,8 +103,19 @@ def _gc_conversations() -> None:
 # Schemas (subset of the Open Responses / OpenAI Responses contract)
 
 class InputMessage(BaseModel):
-    role: Literal["user", "assistant", "system"]
-    content: str
+    role: Literal["user", "assistant", "system", "developer"]
+    content: Union[str, list[dict[str, Any]]]
+
+    def text(self) -> str:
+        """Normaliza content: puede venir como string plano o como lista de
+        partes al estilo OpenAI Responses (p.ej. [{"type":"input_text","text":"..."}])."""
+        if isinstance(self.content, str):
+            return self.content
+        parts = []
+        for part in self.content:
+            if isinstance(part, dict):
+                parts.append(part.get("text") or part.get("input_text") or "")
+        return "".join(parts)
 
 
 class ResponsesRequest(BaseModel):
@@ -120,6 +132,14 @@ def _error(status: int, message: str, error_type: str, code: str) -> JSONRespons
         status_code=status,
         content={"error": {"message": message, "type": error_type, "code": code}},
     )
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    first = exc.errors()[0] if exc.errors() else {}
+    field = ".".join(str(p) for p in first.get("loc", []) if p != "body")
+    msg = first.get("msg", "Solicitud invalida.")
+    logger.warning("validation_error field=%s msg=%s", field, msg)
+    return _error(400, f"Solicitud invalida en '{field}': {msg}" if field else msg, "invalid_request_error", "validation_error")
 
 
 def _output_response(
@@ -208,7 +228,7 @@ async def create_response(
                 "invalid_request_error",
                 "empty_input",
             )
-        user_text = user_only[-1].content
+        user_text = user_only[-1].text()
 
     if not user_text or not user_text.strip():
         return _error(

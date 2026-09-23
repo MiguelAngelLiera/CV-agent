@@ -81,3 +81,20 @@ curl -X POST http://localhost:8080/v1/responses \
 - Input vacío / demasiado largo -> 400.
 - Error temporal del proveedor del modelo -> 502 (no se cae el servicio).
 
+## 4.1 Nota observada en operación: 503 de Gemini bajo demanda alta
+
+Durante pruebas contra el deploy real se observó esto en los logs de Render:
+
+```
+ERROR trace=<id> status=upstream_error code=503 detail=503 UNAVAILABLE.
+{'error': {'code': 503, 'message': 'This model is currently experiencing
+high demand. Spikes in demand are usually temporary. Please try again
+later.', 'status': 'UNAVAILABLE'}}
+```
+
+Esto no es un bug del servicio,  es lo gratuito de `gemini-3.6-flash`
+rechazando temporalmente la request por saturación del lado de Google. El
+comportamiento es el esperado por diseño: el `except Exception` en
+`create_response` clasifica el error por su código HTTP (`503` cae en el
+rango 400-599), lo loggea con `trace_id` para poder rastrearlo, y responde
+`502 upstream_error` al cliente en vez de caerse o devolver un 500 genérico.
