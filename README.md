@@ -50,6 +50,7 @@ y tokens consumidos (sin loggear la API key).
 ## 2. Correr en local
 
 ```bash
+cp .env.example .env
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8080
 ```
