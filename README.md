@@ -98,3 +98,11 @@ comportamiento es el esperado por diseño: el `except Exception` en
 `create_response` clasifica el error por su código HTTP (`503` cae en el
 rango 400-599), lo loggea con `trace_id` para poder rastrearlo, y responde
 `502 upstream_error` al cliente en vez de caerse o devolver un 500 genérico.
+
+
+## Ejemplo en la plataforma
+
+![Salida de ejemplo](resources/ejemplo.png)
+
+**Nota:** Si se hace la primera prueba, probablemente el modelo tarde en responder, ya que render tarda un poco en iniciar.
+
