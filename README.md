@@ -17,6 +17,8 @@ Agente conversacional sobre CV, construido para el **Reto IA Banorte**.
 Gemini genera la respuesta -> se devuelve en formato Open Responses
 ```
 
+![Arquitectura](resources/CV-arch.jpg)
+
 **Contrato externo:** `POST /v1/responses`, siguiendo el shape de
 [Open Responses](https://www.openresponses.org/specification) (basado en la OpenAI Responses API): `input`, `previous_response_id`, `stream`,
 `output[]` con items `message`/`output_text`, `usage`, `status`, y errores

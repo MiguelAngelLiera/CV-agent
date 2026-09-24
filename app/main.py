@@ -87,10 +87,13 @@ PERFIL (unica fuente de verdad):
 
 app = FastAPI(title="CV Agent", version="1.0.0")
 
-_conversations: dict[str, dict[str, Any]] = {}
+_conversations: dict[str, dict[str, Any]] = {} # diccionario donde se almacenan las conversaciones
 
 
 def _gc_conversations() -> None:
+    """
+    Funcion auxiliar para limpiar las entradas venciadas del diccionario.
+    """
     now = time.time()
     dead = [
         k
@@ -108,8 +111,10 @@ class InputMessage(BaseModel):
     content: str | list[dict[str, Any]]
 
     def text(self) -> str:
-        """Normaliza content: puede venir como string plano o como lista de
-        partes al estilo OpenAI Responses (p.ej. [{"type":"input_text","text":"..."}])."""
+        """
+        Normaliza content: puede venir como string plano o como lista de
+        partes al estilo OpenAI Responses (p.ej. [{"type":"input_text","text":"..."}]).
+        """
         if isinstance(self.content, str):
             return self.content
         parts = []
@@ -169,6 +174,14 @@ def _output_response(
 # Autenticacion
 
 def _is_retryable_provider_error(e: Exception) -> int | None:
+    """Ducktyping, para dejar de depender de la jerarquía de clases interna de Gemini
+
+    Args:
+        e (Exception): excepcion a validar
+
+    Returns:
+        int | None: si es un error en el rango de 400 a 599.
+    """
     code = getattr(e, "code", None) or getattr(e, "status_code", None)
     return code if isinstance(code, int) and 400 <= code < 600 else None
 
@@ -189,7 +202,7 @@ def _generate_with_fallback(gemini_contents: list, trace_id: str):
 
     models_to_try = [GEMINI_MODEL]
     if GEMINI_FALLBACK_MODEL and GEMINI_FALLBACK_MODEL != GEMINI_MODEL:
-        models_to_try.append(GEMINI_FALLBACK_MODEL)
+        models_to_try.append(GEMINI_FALLBACK_MODEL) # si hay modelo de reintento
 
     last_error: Exception | None = None
     for model_name in models_to_try:
@@ -224,9 +237,9 @@ def _generate_with_fallback(gemini_contents: list, trace_id: str):
 def _check_auth(authorization: str | None) -> JSONResponse | None:
     if not AGENT_API_KEY:
         # Sin API key configurada, el servicio queda abierto a propósito solo
-        # si el operador así lo decidió (no recomendado en producción).
+        # si el operador así lo decidió.
         return None
-    if not authorization or not authorization.startswith("Bearer "):
+    if not authorization or not authorization.startswith("Bearer "): #aca se puede añanir una capa extra de seguridad
         return _error(
             401,
             "Falta el header Authorization: Bearer <api_key>.",
@@ -254,7 +267,8 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
     trace_id = uuid.uuid4().hex[:12]
     t0 = time.time()
 
-    auth_err = _check_auth(authorization)
+    # empiezan validaciones en general:
+    auth_err = _check_auth(authorization) #autentica entrada
     if auth_err:
         logger.info("trace=%s status=401 reason=auth", trace_id)
         return auth_err
@@ -262,7 +276,7 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
     if client is None:
         return _error(500, "El servicio no tiene configurada la API key del proveedor del modelo.", "server_error", "provider_not_configured")
 
-    # --- normaliza input a texto del turno actual + arma historial ---
+    # normaliza input a texto del turno actual + arma historial
     if isinstance(body.input, str):
         user_text = body.input
     else:
@@ -274,6 +288,7 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
     if not user_text or not user_text.strip():
         return _error(400, "El campo 'input' está vacío.", "invalid_request_error", "empty_input")
 
+    #validacion de entrada
     if len(user_text) > MAX_INPUT_CHARS:
         return _error(
             400,
@@ -282,6 +297,7 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
             "input_too_long",
         )
 
+    # limpia historial de conversaciones
     _gc_conversations()
     history: list[dict[str, str]] = []
     response_id = f"resp_{uuid.uuid4().hex[:20]}"
@@ -295,17 +311,19 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
     gemini_contents = [
         genai_types.Content(role=("model" if m["role"] == "assistant" else "user"), parts=[genai_types.Part.from_text(text=m["content"])])
         for m in history
-    ]
+    ] # traducción del historial de conversación que espera gemini
 
     try:
         completion = _generate_with_fallback(gemini_contents, trace_id)
     except Exception as e:
+        # si se agotaron los reintentos, y el intento de respaldo:
         provider_code = _is_retryable_provider_error(e)
-        if provider_code is not None:
+        if provider_code is not None: # si es un error de provedor:
             #Error de Gemini persistente tras reintentos y fallback
             logger.error("trace=%s status=upstream_error code=%s detail=%s", trace_id, provider_code, e)
             return _error(502, "Error temporal del proveedor del modelo. Intenta de nuevo.", "server_error", "upstream_error")
         logger.error("trace=%s status=internal_error detail=%s", trace_id, e)
+        # en otro caso:
         return _error(500, "Error interno procesando la solicitud.", "server_error", "internal_error")
 
     text = completion.text or ""
@@ -319,7 +337,7 @@ async def create_response(body: ResponsesRequest, request: Request, authorizatio
         "total_tokens": usage_meta.total_token_count or 0,
     }
 
-    latency_ms = int((time.time() - t0) * 1000)
+    latency_ms = int((time.time() - t0) * 1000) #latencia total
     logger.info("trace=%s status=200 latency_ms=%s tokens=%s", trace_id, latency_ms, usage["total_tokens"])
 
     if not body.stream:
