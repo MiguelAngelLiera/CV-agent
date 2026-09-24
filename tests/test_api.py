@@ -7,11 +7,11 @@ Cubre los casos de prueba pedidos por el reto:
 * conversación multi-turno.
 """
 
+import json
 import os
 import sys
 import types
 from unittest.mock import MagicMock
-import json
 
 os.environ["AGENT_API_KEY"] = "test-key"
 os.environ["GEMINI_API_KEY"] = "fake-gemini-key"
@@ -19,7 +19,6 @@ os.environ["GEMINI_API_KEY"] = "fake-gemini-key"
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fastapi.testclient import TestClient
-from google.genai import errors as genai_errors
 
 from app import main
 
@@ -180,3 +179,34 @@ def test_streaming_events():
         assert "type" in payload, f"evento sin 'type': {payload}"
         types_seen.add(payload["type"])
     assert types_seen == {"response.created", "response.output_text.delta", "response.completed"}
+
+
+def test_falls_back_to_secondary_model_after_primary_fails(monkeypatch):
+    monkeypatch.setattr(main.time, "sleep", lambda *_: None)
+
+    class FakeProviderError(Exception):
+        code = 503
+
+    calls = []
+
+    def flaky_generate(*, model, **kwargs):
+        calls.append(model)
+        if model == main.GEMINI_MODEL:
+            raise FakeProviderError("overloaded")
+        return _mock_completion("Respuesta del modelo de respaldo.")
+
+    main.client.models.generate_content = flaky_generate
+    r = client.post("/v1/responses", json={"input": "hola"}, headers=HEADERS)
+    assert r.status_code == 200
+    assert calls.count(main.GEMINI_MODEL) == main.MAX_RETRIES_PER_MODEL
+    assert calls[-1] == main.GEMINI_FALLBACK_MODEL
+
+
+def test_unexpected_internal_error_returns_500(monkeypatch):
+    def raise_generic_error(*args, **kwargs):
+        raise RuntimeError("algo inesperado sin código de proveedor")
+
+    main.client.models.generate_content = raise_generic_error
+    r = client.post("/v1/responses", json={"input": "hola"}, headers=HEADERS)
+    assert r.status_code == 500
+    assert r.json()["error"]["code"] == "internal_error"
